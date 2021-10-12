@@ -117,6 +117,13 @@ describe('authentication-ctbe routes', () => {
         });
     });
 
+    it('should return 401 if a non logged in user attempts to post a comment', async () => {
+        const res = await request(app)
+            .post('/api/comments')
+            .send({ content: 'Hi! Im unauthorized' });
+        expect(res.statusCode).toEqual(401);
+    });
+
     it('should delete a comment only if an admin attempts to do so', async () => {
         await UserService.create({
             email: 'adminCow@supercow.com',
