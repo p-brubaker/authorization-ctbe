@@ -18,6 +18,7 @@ describe('authentication-ctbe routes', () => {
         expect(res.body).toEqual({
             id: expect.any(String),
             email: 'cow@moo.com',
+            role: 'USER',
         });
     });
 
@@ -44,6 +45,7 @@ describe('authentication-ctbe routes', () => {
         expect(res.body).toEqual({
             email: 'cow@moo.com',
             id: expect.any(String),
+            role: 'USER',
         });
     });
 
@@ -73,6 +75,7 @@ describe('authentication-ctbe routes', () => {
             email: 'cow@moo.com',
             exp: expect.any(Number),
             iat: expect.any(Number),
+            role: 'USER',
         });
     });
 
@@ -141,7 +144,7 @@ describe('authentication-ctbe routes', () => {
             .post('/api/auth/signin')
             .send({ email: 'adminCow@supercow.com', password: 'MOOO' });
 
-        const res = await agent.delete('api/comments/1');
+        const res = await agent.delete('/api/comments/1');
         expect(res.body).toEqual({});
     });
 
