@@ -85,6 +85,7 @@ describe('authentication-ctbe routes', () => {
             content: 'Hey! Where is everybody? Am I the only person on here?',
         });
         const res = await request(app).get('/api/comments');
+
         expect(res.body).toEqual(
             expect.arrayContaining([
                 { ...comment1, userId: '1' },
@@ -101,7 +102,7 @@ describe('authentication-ctbe routes', () => {
 
         const commentRes = await agent
             .post('/api/comments')
-            .send({ userId: user.body.id, content: 'Hi Im a cow! Mooo!' });
+            .send({ content: 'Hi Im a cow! Mooo!' });
 
         expect(commentRes.body).toEqual({
             userId: user.body.id,
