@@ -138,6 +138,18 @@ describe('authentication-ctbe routes', () => {
         expect(res.body).toEqual({});
     });
 
+    xit('should return Not Authorized when a non-admin attempts to access an admin route', async () => {
+        await UserService.create({
+            email: 'cow@cow.com',
+            password: 'mooo',
+            roleTitle: 'USER',
+        });
+        await Comment.create({
+            userId: '1',
+            content: 'Hi I am a cow! mooo!',
+        });
+    });
+
     afterAll(() => {
         pool.end();
     });
