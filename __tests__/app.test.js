@@ -4,6 +4,7 @@ const request = require('supertest');
 const app = require('../lib/app.js');
 const UserService = require('../lib/services/UserService.js');
 const Comment = require('../lib/models/Comment.js');
+// const User = require('../lib/models/User.js');
 
 describe('authentication-ctbe routes', () => {
     beforeEach(() => {
@@ -47,7 +48,11 @@ describe('authentication-ctbe routes', () => {
     });
 
     it('should return 401 for trying to login with bad credentials', async () => {
-        await UserService.create({ email: 'cow@moo.com', password: 'mooo' });
+        await UserService.create({
+            email: 'cow@moo.com',
+            password: 'mooo',
+            roleTitle: 'USER',
+        });
         const res = await request(app)
             .post('/api/auth/signin')
             .send({ email: 'cow@moo.com', password: 'moooo' });
@@ -75,6 +80,7 @@ describe('authentication-ctbe routes', () => {
         await UserService.create({
             email: 'cow@moo.com',
             password: 'mooo',
+            roleTitle: 'USER',
         });
         const comment1 = await Comment.create({
             userId: 1,
@@ -109,6 +115,27 @@ describe('authentication-ctbe routes', () => {
             id: '1',
             content: 'Hi Im a cow! Mooo!',
         });
+    });
+
+    it('should delete a comment only if an admin attempts to do so', async () => {
+        await UserService.create({
+            email: 'adminCow@supercow.com',
+            password: 'MOOO',
+            roleTitle: 'ADMIN',
+        });
+        await Comment.create({
+            userId: '1',
+            content: 'IM AN ADMIN COW! MOOO!',
+        });
+
+        const agent = request.agent(app);
+
+        await agent
+            .post('/api/auth/signin')
+            .send({ email: 'adminCow@supercow.com', password: 'MOOO' });
+
+        const res = await agent.delete('api/comments/1');
+        expect(res).toEqual({});
     });
 
     afterAll(() => {
