@@ -3,6 +3,8 @@ const setup = require('../data/setup.js');
 const request = require('supertest');
 const app = require('../lib/app.js');
 const UserService = require('../lib/services/UserService.js');
+const Comment = require('../lib/models/Comment.js');
+// const User = require('../lib/models/User.js');
 
 describe('authentication-ctbe routes', () => {
     beforeEach(() => {
@@ -16,6 +18,7 @@ describe('authentication-ctbe routes', () => {
         expect(res.body).toEqual({
             id: expect.any(String),
             email: 'cow@moo.com',
+            role: 'USER',
         });
     });
 
@@ -42,11 +45,16 @@ describe('authentication-ctbe routes', () => {
         expect(res.body).toEqual({
             email: 'cow@moo.com',
             id: expect.any(String),
+            role: 'USER',
         });
     });
 
     it('should return 401 for trying to login with bad credentials', async () => {
-        await UserService.create({ email: 'cow@moo.com', password: 'mooo' });
+        await UserService.create({
+            email: 'cow@moo.com',
+            password: 'mooo',
+            roleTitle: 'USER',
+        });
         const res = await request(app)
             .post('/api/auth/signin')
             .send({ email: 'cow@moo.com', password: 'moooo' });
@@ -55,22 +63,126 @@ describe('authentication-ctbe routes', () => {
     });
 
     it('GET /me should respond with the currently logged in user', async () => {
-        const user = await UserService.create({
-            email: 'cow@moo.com',
-            password: 'mooo',
-        });
-
         const agent = request.agent(app);
         await agent
-            .post('/api/auth/signin')
+            .post('/api/auth/signup')
             .send({ email: 'cow@moo.com', password: 'mooo' });
 
         const res = await agent.get('/api/auth/me');
 
         expect(res.body).toEqual({
-            id: user.id,
+            id: res.body.id,
             email: 'cow@moo.com',
+            exp: expect.any(Number),
+            iat: expect.any(Number),
+            role: 'USER',
         });
+    });
+
+    it('should GET /comments without needing a JWT', async () => {
+        await UserService.create({
+            email: 'cow@moo.com',
+            password: 'mooo',
+            roleTitle: 'USER',
+        });
+        const comment1 = await Comment.create({
+            userId: 1,
+            content: 'Hi im a cow! Moooo!',
+        });
+        const comment2 = await Comment.create({
+            userId: 1,
+            content: 'Hey! Where is everybody? Am I the only person on here?',
+        });
+        const res = await request(app).get('/api/comments');
+
+        expect(res.body).toEqual(
+            expect.arrayContaining([
+                { ...comment1, userId: '1' },
+                { ...comment2, userId: '1' },
+            ])
+        );
+    });
+
+    it('should post a comment and return it if and only if user is logged in', async () => {
+        const agent = request.agent(app);
+        const user = await agent
+            .post('/api/auth/signup')
+            .send({ email: 'cow@moo.com', password: 'mooo' });
+
+        const commentRes = await agent
+            .post('/api/comments')
+            .send({ content: 'Hi Im a cow! Mooo!' });
+
+        expect(commentRes.body).toEqual({
+            userId: user.body.id,
+            id: '1',
+            content: 'Hi Im a cow! Mooo!',
+        });
+    });
+
+    it('should return 401 if a non logged in user attempts to post a comment', async () => {
+        const res = await request(app)
+            .post('/api/comments')
+            .send({ content: 'Hi! Im unauthorized' });
+        expect(res.statusCode).toEqual(401);
+    });
+
+    it('should delete a comment only if an admin attempts to do so', async () => {
+        await UserService.create({
+            email: 'adminCow@supercow.com',
+            password: 'MOOO',
+            roleTitle: 'ADMIN',
+        });
+        await Comment.create({
+            userId: '1',
+            content: 'IM AN ADMIN COW! MOOO!',
+        });
+
+        const agent = request.agent(app);
+
+        await agent
+            .post('/api/auth/signin')
+            .send({ email: 'adminCow@supercow.com', password: 'MOOO' });
+
+        const res = await agent.delete('/api/comments/1');
+        expect(res.body).toEqual({});
+    });
+
+    it('should return 401 not authenticated when a non logged in user tries to access an auth route', async () => {
+        await UserService.create({
+            email: 'cow@cow.com',
+            password: 'mooo',
+            roleTitle: 'USER',
+        });
+        await Comment.create({
+            userId: '1',
+            content: 'Hi Im a comment!',
+        });
+
+        const res = await request(app).delete('/api/comments/1');
+        expect(res.statusCode).toEqual(401);
+    });
+
+    it('should return 403 Not Authorized when a non-admin attempts to access an admin route', async () => {
+        await UserService.create({
+            email: 'cow@cow.com',
+            password: 'mooo',
+            roleTitle: 'USER',
+        });
+        await Comment.create({
+            userId: '1',
+            content: 'Hi I am a cow! mooo!',
+        });
+
+        const agent = request.agent(app);
+
+        await agent
+            .post('/api/auth/signin')
+            .send({ email: 'cow@cow.com', password: 'mooo' });
+
+        const res = await agent.delete('/api/comments/1');
+        expect(res.body.message).toEqual('Not Authorized');
+        expect(res.statusCode).toEqual(403);
     });
 
     afterAll(() => {
