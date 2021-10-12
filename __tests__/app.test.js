@@ -56,20 +56,15 @@ describe('authentication-ctbe routes', () => {
     });
 
     it('GET /me should respond with the currently logged in user', async () => {
-        const user = await UserService.create({
-            email: 'cow@moo.com',
-            password: 'mooo',
-        });
-
         const agent = request.agent(app);
         await agent
-            .post('/api/auth/signin')
+            .post('/api/auth/signup')
             .send({ email: 'cow@moo.com', password: 'mooo' });
 
         const res = await agent.get('/api/auth/me');
 
         expect(res.body).toEqual({
-            id: user.id,
+            id: res.body.id,
             email: 'cow@moo.com',
             exp: expect.any(Number),
             iat: expect.any(Number),
@@ -96,6 +91,23 @@ describe('authentication-ctbe routes', () => {
                 { ...comment2, userId: '1' },
             ])
         );
+    });
+
+    it('should post a comment and return it if and only if user is logged in', async () => {
+        const agent = request.agent(app);
+        const user = await agent
+            .post('/api/auth/signup')
+            .send({ email: 'cow@moo.com', password: 'mooo' });
+
+        const commentRes = await agent
+            .post('/api/comments')
+            .send({ userId: user.body.id, content: 'Hi Im a cow! Mooo!' });
+
+        expect(commentRes.body).toEqual({
+            userId: user.body.id,
+            id: '1',
+            content: 'Hi Im a cow! Mooo!',
+        });
     });
 
     afterAll(() => {
