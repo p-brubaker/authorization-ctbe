@@ -135,7 +135,7 @@ describe('authentication-ctbe routes', () => {
             .send({ email: 'adminCow@supercow.com', password: 'MOOO' });
 
         const res = await agent.delete('api/comments/1');
-        expect(res).toEqual({});
+        expect(res.body).toEqual({});
     });
 
     afterAll(() => {
