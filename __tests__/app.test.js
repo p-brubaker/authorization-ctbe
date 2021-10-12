@@ -3,6 +3,7 @@ const setup = require('../data/setup.js');
 const request = require('supertest');
 const app = require('../lib/app.js');
 const UserService = require('../lib/services/UserService.js');
+const Comment = require('../lib/models/Comment.js');
 
 describe('authentication-ctbe routes', () => {
     beforeEach(() => {
@@ -71,6 +72,28 @@ describe('authentication-ctbe routes', () => {
             id: user.id,
             email: 'cow@moo.com',
         });
+    });
+
+    it('should GET /comments without needing a JWT', async () => {
+        await UserService.create({
+            email: 'cow@moo.com',
+            password: 'mooo',
+        });
+        const comment1 = await Comment.create({
+            userId: 1,
+            content: 'Hi im a cow! Moooo!',
+        });
+        const comment2 = await Comment.create({
+            userId: 1,
+            content: 'Hey! Where is everybody? Am I the only person on here?',
+        });
+        const res = await request(app).get('/api/comments');
+        expect(res.body).toEqual(
+            expect.arrayContaining([
+                { ...comment1, userId: '1' },
+                { ...comment2, userId: '1' },
+            ])
+        );
     });
 
     afterAll(() => {
