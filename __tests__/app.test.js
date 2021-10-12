@@ -71,6 +71,8 @@ describe('authentication-ctbe routes', () => {
         expect(res.body).toEqual({
             id: user.id,
             email: 'cow@moo.com',
+            exp: expect.any(Number),
+            iat: expect.any(Number),
         });
     });
 
