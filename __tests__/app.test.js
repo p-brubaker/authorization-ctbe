@@ -138,7 +138,7 @@ describe('authentication-ctbe routes', () => {
         expect(res.body).toEqual({});
     });
 
-    xit('should return Not Authorized when a non-admin attempts to access an admin route', async () => {
+    it('should return Not Authorized when a non-admin attempts to access an admin route', async () => {
         await UserService.create({
             email: 'cow@cow.com',
             password: 'mooo',
@@ -148,6 +148,16 @@ describe('authentication-ctbe routes', () => {
             userId: '1',
             content: 'Hi I am a cow! mooo!',
         });
+
+        const agent = request.agent(app);
+
+        await agent
+            .post('/api/auth/signin')
+            .send({ email: 'cow@cow.com', password: 'mooo' });
+
+        const res = await agent.delete('/api/comments/1');
+        expect(res.body.message).toEqual('Not Authorized');
+        expect(res.statusCode).toEqual(403);
     });
 
     afterAll(() => {
