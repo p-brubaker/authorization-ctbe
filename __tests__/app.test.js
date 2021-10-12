@@ -145,7 +145,22 @@ describe('authentication-ctbe routes', () => {
         expect(res.body).toEqual({});
     });
 
-    it('should return Not Authorized when a non-admin attempts to access an admin route', async () => {
+    it('should return 401 not authenticated when a non logged in user tries to access an auth route', async () => {
+        await UserService.create({
+            email: 'cow@cow.com',
+            password: 'mooo',
+            roleTitle: 'USER',
+        });
+        await Comment.create({
+            userId: '1',
+            content: 'Hi Im a comment!',
+        });
+
+        const res = await request(app).delete('/api/comments/1');
+        expect(res.statusCode).toEqual(401);
+    });
+
+    it('should return 403 Not Authorized when a non-admin attempts to access an admin route', async () => {
         await UserService.create({
             email: 'cow@cow.com',
             password: 'mooo',
